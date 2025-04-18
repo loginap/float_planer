@@ -7,51 +7,51 @@ notes = []
 def rec_note(notes, mood="", free_time=9999999): #Возвращает список дел, отсортированный по вторичному приоритету
     priors_notes = []
     for note in notes:
-        priors_notes.append(note.return_prior2(mood,free_time))
-    priors_notes = sorted(priors_notes)[::-1]
+        priors_notes.append(note.return_prior2(mood,free_time)) #Добавляем в список приоритеты дел
+    priors_notes = sorted(priors_notes)[::-1] #Сортируем приоритеты
     rec_notes = []
     for pr in priors_notes:
         for note in notes:
-            if note.return_prior2(mood, free_time) == pr and note not in rec_notes:
+            if note.return_prior2(mood, free_time) == pr and note not in rec_notes: #Сопоставляем приоритеты и дела
                 rec_notes.append(note)
                 break
     return rec_notes
 
-def rec_time_note(notes, mood="", free_time=9999999, tag=""): # Возвращает приоритет деленый
+def rec_time_note(notes, mood="", free_time=9999999, tag=""): # Возвращает приоритет деленый на единицу времени
     priors_notes = []
     for note in notes:
 
-        if note.len_note != None and (tag!=  "" and tag in note.tags or tag == ""):
+        if note.len_note != None and (tag!=  "" and tag in note.tags or tag == ""): #Не берем дела без времени или без нужного тега
             priors_notes.append(note)
     priors = []
     for note in priors_notes:
-        priors.append(note.return_prior2(mood,free_time)/ note.len_note/note.coef_del)
-    priors = sorted(priors)[::-1]
+        priors.append(note.return_prior2(mood,free_time)/ note.len_note/note.coef_del)#Добавляем в список приоритеты в минуту дел
+    priors = sorted(priors)[::-1] #Сортируем приоритеты в минуту
     sort_notes = []
     for j in priors:
         for note in priors_notes:
-            if note.return_prior2(mood,free_time)/ note.len_note/note.coef_del == j and note.return_prior2(mood,free_time) not in sort_notes:
+            if note.return_prior2(mood,free_time)/ note.len_note/note.coef_del == j and note.return_prior2(mood,free_time) not in sort_notes: #Сопоставляем приоритеты в минуту и дела
                 sort_notes.append(note)
 
     return [priors, sort_notes]
 
-def create_plan(notes, free_time, mood=""):
-    sr_inf = rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо")
+def create_plan(notes, free_time, mood=""): #Возвращяет максимально эффективно расставленные дела во времени
+    sr_inf = rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") #Самое эффективное делимое дело
     time = free_time
     rec_notes = []
 
-    rec = rec_note(notes, mood=mood, free_time=free_time)[0]
+    rec = rec_note(notes, mood=mood, free_time=free_time)[0] #Рекомендованное дело
     i = 0
-    while rec.len_note < time and rec.prior/ rec.len_note/rec.coef_del > sr_inf[0][0]:
+    while rec.len_note < time and rec.prior/ rec.len_note/rec.coef_del > sr_inf[0][0]: #Пока рек. дело эффективнее, чем sr_inf добавляем в план
         time-= rec.len_note
         rec_notes.append(rec)
         i+= 1
 
         rec = rec_note(notes, mood=mood, free_time=free_time)[i]
-    rec_notes.append(sr_inf[1][0])
+    rec_notes.append(sr_inf[1][0]) #Дозаполняем план
     if sr_inf[1][0].len_note < time and len(notes)>1:
         time-= sr_inf[1][0].len_note
-        rec_notes+= create_plan([u for u in notes if u not in rec_notes], time, mood=mood)
+        rec_notes+= create_plan([u for u in notes if u not in rec_notes], time, mood=mood) #Если остались время и дела, то продолжаем заполнять
     else:
         time = 0
 
@@ -66,10 +66,13 @@ class Note:
         self.len_note = len_note
         self.date = date
         self.coef_del = coef_del
-    def return_prior2(self,mood: str, free_time:int):
+    def return_prior2(self,mood: str, free_time:int): #Возвращяет вторичный приоритет
         pr = self.prior
         if self.len_note != None and self.len_note > free_time:
-            pr //= 2
+            if "делимо" in self.tags:
+                pr //= 2
+            else:
+                return 0
         if mood in mood_to_tags:
             for md in mood_to_tags[mood]:
                 if md["tag"] in self.tags:
