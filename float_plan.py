@@ -36,7 +36,9 @@ def rec_time_note(notes, mood="", free_time=9999999, tag=""): # Возвраща
     return [priors, sort_notes]
 
 def create_plan(notes, free_time, mood=""): #Возвращяет максимально эффективно расставленные дела во времени
-    sr_inf = rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") #Самое эффективное делимое дело
+    if rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") != [[], []]:
+
+        sr_inf = rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") #Самое эффективное делимое дело
     time = free_time
     rec_notes = []
 
@@ -48,9 +50,11 @@ def create_plan(notes, free_time, mood=""): #Возвращяет максима
         i+= 1
 
         rec = rec_note(notes, mood=mood, free_time=free_time)[i]
-    rec_notes.append(sr_inf[1][0]) #Дозаполняем план
+    if rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") != [[], []]:
+        rec_notes.append(sr_inf[1][0]) #Дозаполняем план
     if sr_inf[1][0].len_note < time and len(notes)>1:
-        time-= sr_inf[1][0].len_note
+        if rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") != [[], []]:
+            time-= sr_inf[1][0].len_note
         rec_notes+= create_plan([u for u in notes if u not in rec_notes], time, mood=mood) #Если остались время и дела, то продолжаем заполнять
     else:
         time = 0
@@ -81,34 +85,34 @@ class Note:
 
 
 
+if __main__ == "__main__":
+    # Тестовые данные
+    note1 = Note("Заметка 1", "Описание 1", 40, ["творческая"], len_note=30)
+    note2 = Note("Заметка 2", "Описание 2", 1, ["скучное", "делимо"], len_note=20)
+    note3 = Note("Заметка 3", "Описание 3", 5, ["быстрое", "делимо"], len_note=10)
+    note4 = Note("Заметка 4", "Описание 4", 0, ["делимо"], len_note=60)
+    notes = [note1, note2, note3, note4]
 
-# Тестовые данные
-note1 = Note("Заметка 1", "Описание 1", 40, ["творческая"], len_note=30)
-note2 = Note("Заметка 2", "Описание 2", 1, ["скучное", "делимо"], len_note=20)
-note3 = Note("Заметка 3", "Описание 3", 5, ["быстрое", "делимо"], len_note=10)
-note4 = Note("Заметка 4", "Описание 4", 0, ["делимо"], len_note=60)
-notes = [note1, note2, note3, note4]
+    # Тестирование функций
+    print("=== Проверка return_prior2 ===")
+    for note in notes:
+        print(f"{note.name}: {note.return_prior2("Полон энергии", 250)}")
 
-# Тестирование функций
-print("=== Проверка return_prior2 ===")
-for note in notes:
-    print(f"{note.name}: {note.return_prior2("Полон энергии", 250)}")
+    print("\n=== Проверка rec_note ===")
+    recommended = rec_note(notes, mood="Полон энергии", free_time=25)
+    for note in recommended:
+        print(f"{note.name}: приоритет {note.return_prior2("Полон энергии", 25)}")
 
-print("\n=== Проверка rec_note ===")
-recommended = rec_note(notes, mood="Полон энергии", free_time=25)
-for note in recommended:
-    print(f"{note.name}: приоритет {note.return_prior2("Полон энергии", 25)}")
+    print("\n=== Проверка rec_time_note ===")
+    nts = rec_time_note(notes, mood="Полон энергии", free_time=25, tag="делимо")
+    print("Приоритеты:", nts[0])
+    print("Заметки:")
+    #print(nts)
+    for note in nts[1]:
+        print(note.name)
 
-print("\n=== Проверка rec_time_note ===")
-nts = rec_time_note(notes, mood="Полон энергии", free_time=25, tag="делимо")
-print("Приоритеты:", nts[0])
-print("Заметки:")
-#print(nts)
-for note in nts[1]:
-    print(note.name)
-
-print("\n=== Проверка create_plan ===")
-plan = create_plan(notes, free_time=1000, mood="Полон энергии")
-print("План:")
-for note in plan:
-    print(note.name)
+    print("\n=== Проверка create_plan ===")
+    plan = create_plan(notes, free_time=1000, mood="Полон энергии")
+    print("План:")
+    for note in plan:
+        print(note.name)
