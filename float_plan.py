@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 from moods import mood_to_tags
+import json
 
 notes = []
 
@@ -21,7 +22,7 @@ def rec_time_note(notes, mood="", free_time=9999999, tag=""): # Возвраща
     priors_notes = []
     for note in notes:
 
-        if note.len_note != None and (tag!=  "" and tag in note.tags or tag == ""): #Не берем дела без времени или без нужного тега
+        if note.len_note != None and (tag!=  "" and note.tags!= None and tag in note.tags or tag == ""): #Не берем дела без времени или без нужного тега
             priors_notes.append(note)
     priors = []
     for note in priors_notes:
@@ -36,9 +37,8 @@ def rec_time_note(notes, mood="", free_time=9999999, tag=""): # Возвраща
     return [priors, sort_notes]
 
 def create_plan(notes, free_time, mood=""): #Возвращяет максимально эффективно расставленные дела во времени
-    if rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") != [[], []]:
 
-        sr_inf = rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") #Самое эффективное делимое дело
+    sr_inf = rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") #Самое эффективное делимое дело
     time = free_time
     rec_notes = []
 
@@ -50,42 +50,76 @@ def create_plan(notes, free_time, mood=""): #Возвращяет максима
         i+= 1
 
         rec = rec_note(notes, mood=mood, free_time=free_time)[i]
-    if rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") != [[], []]:
-        rec_notes.append(sr_inf[1][0]) #Дозаполняем план
+
+    rec_notes.append(sr_inf[1][0]) #Дозаполняем план
     if sr_inf[1][0].len_note < time and len(notes)>1:
-        if rec_time_note(notes, mood=mood, free_time=free_time, tag="делимо") != [[], []]:
-            time-= sr_inf[1][0].len_note
+        time-= sr_inf[1][0].len_note
         rec_notes+= create_plan([u for u in notes if u not in rec_notes], time, mood=mood) #Если остались время и дела, то продолжаем заполнять
     else:
         time = 0
 
     return rec_notes
 
+def json_to_note(json_file):
+    notes = []
+    with open(json_file, 'r', encoding='utf-8') as file:
+        data = json.load(file)
+    for note in data:
+        if note["name"] == "":
+            name = "Безымянный файл, так делать нельзя, кусок дерьма"
+        else:
+            name = note["name"]
+        if note["desc"] == "":
+            desc = "Ты ничего не написал"
+        else:
+            desc = note["desc"]
+        if note["prior"] == 0:
+            prior = 5
+        else:
+            prior = note["prior"]
+        if note["len_note"] == "null":
+            len_note = None
+        else:
+            len_note = note["len_note"]
+        if note["date"] == "null":
+            date = None
+        else:
+            date = note["date"]
+        tags = note["tags"]
+
+        notes.append(Note(name, desc, prior, tags, len_note, date))
+    if Note("Ничего не делать", "", 0, ["делимо"], float('inf')) not in notes:
+        notes.append(Note("Ничего не делать", "", 0, ["делимо"], float('inf')))
+    return notes
+
+
+
 class Note:
-    def __init__(self,name: str, description:str, prior:int, tags: list or None, len_note=None, date=None, coef_del=1):
+    def __init__(self,name: str, desc:str, prior:int, tags: list or None, len_note=None, date=None, coef_del=1):
         self.name = name
-        self.desc = description
+        self.desc = desc
         self.tags = tags
         self.prior = prior
         self.len_note = len_note
         self.date = date
-        self.coef_del = coef_del
-    def return_prior2(self,mood: str, free_time:int): #Возвращяет вторичный приоритет
+        self.coef_del = 1
+    def return_prior2(self, mood: str, free_time:int): #Возвращяет вторичный приоритет
         pr = self.prior
-        if self.len_note != None and self.len_note > free_time:
-            if "делимо" in self.tags:
-                pr //= 2
-            else:
-                return 0
-        if mood in mood_to_tags:
-            for md in mood_to_tags[mood]:
-                if md["tag"] in self.tags:
-                    pr += md["impact"]
+        if self.tags != None:
+            if self.len_note != None and self.len_note > free_time:
+                if "делимо" in self.tags:
+                    pr //= 2
+                else:
+                    return 0
+            if mood in mood_to_tags:
+                for md in mood_to_tags[mood]:
+                    if md["tag"] in self.tags:
+                        pr += md["impact"]
         return pr
 
 
 
-if __main__ == "__main__":
+if __name__ == "__main__":
     # Тестовые данные
     note1 = Note("Заметка 1", "Описание 1", 40, ["творческая"], len_note=30)
     note2 = Note("Заметка 2", "Описание 2", 1, ["скучное", "делимо"], len_note=20)
@@ -116,3 +150,4 @@ if __main__ == "__main__":
     print("План:")
     for note in plan:
         print(note.name)
+#print(json_to_note("notes.json"))
