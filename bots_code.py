@@ -9,6 +9,20 @@ from telegram.ext import (
 from telegram.error import TelegramError, TimedOut
 from float_plan import Note, create_plan, rec_note
 from moods import mood_to_tags
+import os
+from dotenv import load_dotenv
+
+# Загружаем переменные из .env файла
+load_dotenv()
+
+# Получаем токен из переменной окружения
+TOKEN = os.getenv('BOT_TOKEN')
+
+# Проверяем, что токен загрузился (опционально, но рекомендуется)
+if not TOKEN:
+    print("Ошибка: BOT_TOKEN не найден в .env файле!")
+    exit(1)
+
 
 # Настройка логирования
 logging.basicConfig(
@@ -17,7 +31,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TOKEN = "7516925402:AAEF8uFDQLVnJGI03RBCU-qopLeuBXxnWoU"
+#TOKEN = ""
 
 # Состояния для ConversationHandler
 (ADD_NAME, ADD_DESC, ADD_PRIOR, ADD_TAGS, ADD_LEN, ADD_DATE) = range(6)
@@ -558,4 +572,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     main()
